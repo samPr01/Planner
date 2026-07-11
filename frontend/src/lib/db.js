@@ -19,9 +19,14 @@ db.version(1).stores({
 
 // One-time seed + optional migration from legacy localStorage key.
 export async function initDatabase() {
-    const catCount = await db.categories.count();
-    if (catCount === 0) {
-        await db.categories.bulkAdd(DEFAULT_CATEGORIES);
+    try {
+        const catCount = await db.categories.count();
+        if (catCount === 0) {
+            // bulkPut is idempotent — safe against StrictMode / race after reset
+            await db.categories.bulkPut(DEFAULT_CATEGORIES);
+        }
+    } catch (e) {
+        console.warn("category seed skipped:", e);
     }
 
     const settingsRow = await db.settings.get("app");
@@ -127,8 +132,11 @@ export async function resetDatabase() {
             db.savingsFunds.clear(),
             db.monthlySnapshots.clear(),
         ]);
+        // Re-seed within the same transaction to avoid races with useLiveQuery re-fetches
+        await db.categories.bulkPut(DEFAULT_CATEGORIES);
+        await db.settings.put({ key: "app", currentMonth: currentMonthKey(), notificationsEnabled: false });
+        await db.budgets.put({ monthKey: currentMonthKey(), amount: 0 });
     });
-    await initDatabase();
 }
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
