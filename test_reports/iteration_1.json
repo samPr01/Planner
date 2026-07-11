@@ -1,0 +1,27 @@
+{
+  "summary": "Smoke-tested the client-side budget planner frontend. Covered app load, 6-item sidebar navigation, theme toggle + persistence, monthly budget set (₹37,000), planned Fixed item (Rent 8000) add + mark-paid, dashboard recalculation (Remaining 29,000, Spent 8,000), History/Calendar/Reports/Settings navigation and key elements, data persistence via localStorage, and mobile bottom-nav responsive layout. All primary flows working; no console errors (only benign Recharts sizing warnings and shadcn Dialog aria warnings).",
+  "tested_scope": ["frontend", "integration"],
+  "passed": [
+    "App loads at REACT_APP_BACKEND_URL root; Dashboard renders",
+    "All 6 sidebar nav items visible: dashboard, planned, calendar, history, reports, settings",
+    "Theme toggle switches localStorage 'theme' light<->dark and persists",
+    "Set budget flow: edit-budget-btn -> budget-input(37000) -> save-budget-btn; hero-remaining shows ₹37,000",
+    "Planned page: add-planned-cat-rent opens PlannedDialog with input-name/amount/due; save-planned-btn creates item",
+    "mark-paid-<id> works: item marked paid, dashboard Remaining decreased to ₹29,000, Spent = ₹8,000",
+    "History page: history-search input visible",
+    "Calendar page: calendar-grid renders",
+    "Reports page: KPI labels (Budget, Spent, Utilization) present",
+    "Settings page: active-month-input and export-btn visible",
+    "Persistence: after reload, hero-remaining still ₹29,000; localStorage key 'budget-planner:v1' exists",
+    "Mobile viewport 375x812: nav-dashboard-mobile visible (bottom nav)"
+  ],
+  "failed": [],
+  "warnings": [
+    "Recharts emits width(-1)/height(-1) warnings on Reports page (chart container sizing) - cosmetic, charts still render.",
+    "Radix Dialog missing Description/aria-describedby on PlannedDialog - a11y warning only."
+  ],
+  "action_items": [],
+  "success_rate": {"backend": "N/A (client-side only app)", "frontend": "100% (12/12 checks passed)"},
+  "retest_needed": false,
+  "full_testing_deferred": true
+}
