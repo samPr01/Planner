@@ -1,0 +1,144 @@
+{
+  "app_name": "Premium Personal Budget Planner",
+  "theme_strategy": "Dark mode default, system preference following, light mode toggle. Client-side storage (localStorage) only. No backend.",
+  "aesthetic_archetype": "ARCHETYPE 4: SWISS & HIGH-CONTRAST (Authority, Clarity, Truth) mixed with Linear-style technical precision.",
+  "typography": {
+    "strategy": "The 'Old Money Tech' approach. Extreme clarity with premium character.",
+    "fonts": {
+      "headings": "Cabinet Grotesk",
+      "body": "Manrope",
+      "data_and_numbers": "JetBrains Mono"
+    },
+    "hierarchy": {
+      "h1_hero_balance": "text-5xl sm:text-6xl font-light tracking-tighter font-mono",
+      "h2_section": "text-2xl sm:text-3xl font-medium tracking-tight",
+      "h3_card": "text-lg font-medium tracking-tight",
+      "body": "text-base leading-relaxed text-muted-foreground",
+      "labels": "text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground",
+      "amounts": "font-mono font-medium tracking-tight"
+    },
+    "rules": [
+      "NEVER use Inter, Roboto, Open Sans, or Space Grotesk.",
+      "All financial figures MUST use JetBrains Mono to ensure tabular lining of numbers.",
+      "Use extremely tight tracking (-0.02em to -0.04em) on headings.",
+      "Labels and overlines must be uppercase with wide tracking (0.2em)."
+    ]
+  },
+  "colors": {
+    "dark": {
+      "background": "#050505",
+      "surface": "#111111",
+      "surface_hover": "#1A1A1A",
+      "border": "#222222",
+      "text_primary": "#EDEDED",
+      "text_muted": "#888888",
+      "ring": "#EDEDED"
+    },
+    "light": {
+      "background": "#FAFAFA",
+      "surface": "#FFFFFF",
+      "surface_hover": "#F4F4F5",
+      "border": "#E5E5E5",
+      "text_primary": "#111111",
+      "text_muted": "#666666",
+      "ring": "#111111"
+    },
+    "semantic": {
+      "income_positive": "#10B981",
+      "expense_negative": "#EF4444",
+      "warning_upcoming": "#F59E0B",
+      "flexible_safe": "#EDEDED",
+      "flexible_warning": "#F59E0B",
+      "flexible_danger": "#EF4444"
+    },
+    "chart_palette": [
+      "#EDEDED",
+      "#A3A3A3",
+      "#525252",
+      "#262626",
+      "#171717"
+    ],
+    "rules": [
+      "Strict monochrome foundation. Color is used ONLY for financial status (positive, negative, upcoming, warning).",
+      "NO purple or violet gradients.",
+      "NO muddy or grey transparent overlays.",
+      "Backgrounds must be solid. Use a subtle noise/grain texture on the body (opacity 2-3%) for a premium tactile feel."
+    ]
+  },
+  "spacing_and_layout": {
+    "strategy": "High Density Grid for the dashboard but extremely generous internal padding for breathing room.",
+    "dashboard_grid": "grid-cols-1 md:grid-cols-4 gap-6",
+    "bento_span_rules": {
+      "hero_budget": "col-span-1 md:col-span-4 lg:col-span-2 row-span-2",
+      "flexible_spending": "col-span-1 md:col-span-2 row-span-1",
+      "expense_donut": "col-span-1 md:col-span-2 row-span-2",
+      "recent_transactions": "col-span-1 md:col-span-2 row-span-2"
+    },
+    "padding_scale": {
+      "card_internal": "p-6 md:p-8",
+      "page_container": "px-4 sm:px-8 lg:px-12 py-8 lg:py-16"
+    },
+    "alignment": "Strictly left-aligned content. Asymmetry creates visual interest. Right-align monetary amounts in lists."
+  },
+  "components": {
+    "cards": {
+      "default": "bg-surface border border-border rounded-xl shadow-sm transition-all duration-300",
+      "hover": "hover:border-text_muted/30 hover:shadow-md",
+      "hero_budget": "Relative positioning, noise texture overlay, massive JetBrains Mono typography for the balance, no heavy gradients.",
+      "flexible_spending": "Includes a sharp, 4px height progress bar. Color logic: under 80% = semantic.flexible_safe, 80-99% = semantic.warning_upcoming, 100%+ = semantic.expense_negative."
+    },
+    "buttons": {
+      "primary": "bg-text_primary text-background rounded-full px-6 py-2.5 font-medium hover:scale-[0.98] transition-transform",
+      "secondary": "bg-transparent border border-border text-text_primary rounded-full px-6 py-2.5 hover:bg-surface_hover transition-colors"
+    },
+    "inputs": {
+      "default": "bg-transparent border-b border-border rounded-none px-0 py-2 focus:border-text_primary focus:ring-0 transition-colors duration-200 text-lg",
+      "rule": "Use elegant underline inputs for manual entry forms rather than standard boxed inputs."
+    },
+    "surfaces": {
+      "dropdowns_modals": "bg-surface border border-border rounded-xl shadow-2xl backdrop-blur-xl backdrop-saturate-150",
+      "rule": "CRITICAL: Never use a completely transparent background for dropdowns or floating elements. Always use solid or heavily blurred backgrounds."
+    },
+    "charts": {
+      "donut": "Use Recharts PieChart. Thin strokes, no generic distinct colors. Use the monochrome chart_palette. Center text shows total expense.",
+      "bar_trend": "Use Recharts BarChart. Minimal axes, hide grid lines or use very subtle border color. Active bar gets primary text color, inactive bars get muted color."
+    }
+  },
+  "motion": {
+    "strategy": "Linear-inspired micro-interactions. Instant responsiveness, smooth but quick transitions.",
+    "hover_states": "All interactable elements must have explicit hover states (e.g., hover:text-white). Do not rely on transition: all.",
+    "page_load": "Staggered fade-up for dashboard widgets (framer-motion, y: 20, opacity: 0, duration: 0.4, stagger: 0.05).",
+    "mark_as_paid": "When an item is marked as paid, animate it sliding out right and collapsing height before moving to history."
+  },
+  "icons_and_assets": {
+    "library": "lucide-react",
+    "rules": [
+      "NO EMOJIS anywhere in the UI.",
+      "Icons should use stroke-width 1.5 for a refined, sharp look.",
+      "Use icons sparingly, primarily for Savings Envelopes, Categories, and Navigation."
+    ]
+  },
+  "testing": {
+    "data_testid_rules": "All interactive and key informational elements MUST include a data-testid attribute in kebab-case. Example: data-testid='budget-total-balance', data-testid='mark-paid-button'."
+  },
+  "instructions_to_main_agent": [
+    "Prioritize data privacy: Implement robust localStorage logic with initial state hydration. No external API calls for data.",
+    "Use standard js/jsx, not tsx.",
+    "Install required fonts from Google Fonts: Cabinet Grotesk (via Fontshare or local face if unavailable, fallback to Space Grotesk IS BANNED, fallback to General Sans or default sans), Manrope, JetBrains Mono.",
+    "Currency formatting MUST use Intl.NumberFormat for INR (₹). Example: ₹37,000.",
+    "Implement Shadcn UI heavily customized to remove the 'Vercel look'. Override radiuses, shadows, and borders to match the design system.",
+    "For the Reminder System, leverage browser Notification API alongside in-app toast notifications (use Sonner).",
+    "Ensure the layout is highly responsive. The Grid should degrade gracefully to 1 column on mobile.",
+    "Avoid unnecessary wrappers. Grid children must be direct children to maintain layout structure."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "Do not converge toward generic outputs. Avoid 'AI slop'.",
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients.",
+    "Do not center-align the app container. Maintain natural left-aligned reading flow.",
+    "Every interaction needs micro-animations - hover states, explicit color shifts.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "Add data-testid to every button, input, list item, and key text element.",
+    "Use 'sonner' for toasts.",
+    "Do not use transparent dropdown backgrounds."
+  ]
+}
