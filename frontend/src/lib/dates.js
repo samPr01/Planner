@@ -38,13 +38,19 @@ export function monthKeyFromISO(iso) {
 export function formatShortDate(iso) {
     if (!iso) return "";
     const d = new Date(iso);
-    return d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
 }
 
 export function formatFullDate(iso) {
     if (!iso) return "";
     const d = new Date(iso);
-    return d.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
 }
 
 export function weekOfMonth(iso) {
