@@ -1,0 +1,20 @@
+{
+  "summary": "Regression test after date-fns downgrade (^3.6.0) to resolve react-day-picker peer conflict. All flows verified: package.json shows date-fns@^3.6.0, app loads with 0 console/page errors, sidebar renders, budget set flow works (hero-remaining=₹37,000), all 6 nav routes (Dashboard, Planned, Calendar, History, Reports, Settings) render cleanly, and a planned item with due date 2026-02-15 displays as 15/02/2026 on both Planned list and Dashboard upcoming payments.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Native mm/dd/yyyy date input in New planned item modal shows US format placeholder even though rendered output uses dd/mm/yyyy — consider a shadcn calendar (react-day-picker) for consistent UX; note this depends on react-day-picker@8 which is compatible with the current date-fns@3.6.0."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a", "frontend": "100%"},
+  "seed_data_creation": "Created one planned item (Rent Payment ₹15000, due 2026-02-15) via UI to verify date formatting.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 1 (12/12 pass) + iteration 2 regression pass. date-fns pinned at ^3.6.0 to satisfy react-day-picker@8.10.1 peer dep. No backend; localStorage key 'budget-planner:v1'."
+}
