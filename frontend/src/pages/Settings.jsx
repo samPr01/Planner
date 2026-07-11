@@ -36,9 +36,9 @@ export default function Settings() {
         }
     };
 
-    const exportData = () => {
-        const raw = localStorage.getItem("budget-planner:v1") || "{}";
-        const blob = new Blob([raw], { type: "application/json" });
+    const exportData = async () => {
+        const data = await s.exportDatabase();
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
@@ -50,10 +50,10 @@ export default function Settings() {
 
     const importData = (file) => {
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             try {
                 const parsed = JSON.parse(e.target.result);
-                localStorage.setItem("budget-planner:v1", JSON.stringify(parsed));
+                await s.importDatabase(parsed);
                 toast.success("Imported. Reloading...");
                 setTimeout(() => window.location.reload(), 800);
             } catch {
@@ -96,7 +96,7 @@ export default function Settings() {
 
             <Panel>
                 <Eyebrow>Backup & restore</Eyebrow>
-                <p className="mt-2 text-sm text-muted-foreground">Your data lives in this browser. Export a JSON backup to keep it safe.</p>
+                <p className="mt-2 text-sm text-muted-foreground">Your data is stored in this browser (IndexedDB). Export a JSON backup to keep it safe.</p>
                 <div className="mt-4 flex flex-wrap gap-3">
                     <Button data-testid="export-btn" onClick={exportData} variant="outline" className="rounded-full">Export backup</Button>
                     <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-border px-4 py-2 text-sm transition-colors hover:border-foreground">

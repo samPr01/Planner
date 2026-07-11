@@ -1,0 +1,17 @@
+{
+    "short_name": "Ledger",
+    "name": "Ledger — Personal Budget Planner",
+    "description": "A distraction-free personal budget planner. Track spending, plan payments, hit savings goals — 100% offline, private, and yours.",
+    "icons": [
+        { "src": "icon-192.svg", "type": "image/svg+xml", "sizes": "192x192", "purpose": "any maskable" },
+        { "src": "icon-512.svg", "type": "image/svg+xml", "sizes": "512x512", "purpose": "any maskable" }
+    ],
+    "start_url": ".",
+    "scope": ".",
+    "display": "standalone",
+    "orientation": "portrait-primary",
+    "theme_color": "#050505",
+    "background_color": "#050505",
+    "categories": ["finance", "productivity", "utilities"],
+    "lang": "en"
+}
