@@ -1,0 +1,57 @@
+{
+  "summary": "OAuth 'click does nothing' fix verified end-to-end. In State 2 (Cloud ENABLED with fake creds), clicking Google and Apple buttons now triggers an EXPLICIT browser navigation to https://exampletest.supabase.co/auth/v1/authorize?... — Playwright caught net::ERR_NAME_NOT_RESOLVED (expected: fake domain), proving the redirect fires. State 1 (Cloud DISABLED) regression baseline is clean.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "verification_details": {
+    "state1_cloud_disabled": {
+      "boot_log": "[Ledger] Cloud sync: DISABLED | url=missing | key=missing",
+      "local_only_chip": true,
+      "settings_shows_disabled_message": true,
+      "no_console_errors": true
+    },
+    "state2_cloud_enabled": {
+      "boot_log": "[Ledger] Cloud sync: ENABLED | url=exampletest | key=set (205 chars, prefix=eyJ…)",
+      "sign_in_btn_visible": true,
+      "auth_dialog_opens": true
+    },
+    "google_oauth": {
+      "sdk_log_present": true,
+      "sdk_log": "[Ledger] signInWithOAuth result: {provider: google, hasUrl: true, url: https://exampletest.supabase.co/auth/v1/authorize?…&code_challenge_method=s256&prompt=select_account, error: null}",
+      "network_request_url": "https://exampletest.supabase.co/auth/v1/authorize?provider=google&redirect_to=https%3A%2F%2Fbudget-vault-43.preview.emergentagent.com&code_challenge=<hash>&code_challenge_method=s256&prompt=select_account",
+      "navigation_fired": true,
+      "err_name_not_resolved_observed": true,
+      "has_provider_google": true,
+      "has_code_challenge_method_s256": true,
+      "has_prompt_select_account": true,
+      "redirect_to_is_root_origin": true
+    },
+    "apple_oauth": {
+      "navigation_fired": true,
+      "network_request_url": "https://exampletest.supabase.co/auth/v1/authorize?provider=apple&redirect_to=https%3A%2F%2Fbudget-vault-43.preview.emergentagent.com&code_challenge=<hash>&code_challenge_method=s256&prompt=select_account"
+    },
+    "email_password": {
+      "supabase_request_made": "POST https://exampletest.supabase.co/auth/v1/token?grant_type=password",
+      "toast_shown": "Failed to fetch (expected for fake domain)",
+      "path_routes_through_supabase": true
+    },
+    "env_restored": true
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "AuthContext.jsx L41: redirectTo=window.location.origin correctly matches root-level Supabase allowlist. Good.",
+    "AuthContext.jsx L61: window.location.href=data.url ensures explicit navigation independent of SDK's internal assign timing. Fix is correct.",
+    "AuthDialog.jsx L28-31: !data?.url actionable toast in place — no silent failure path.",
+    "Minor: 'Local only' chip still shows in sidebar when cloudEnabled=true but user not signed in yet. Consistent with UX intent (sync inactive until signed in) but could be misleading — consider a 'Not signed in' label instead."
+  ],
+  "updated_files": ["/app/frontend/.env (temporarily modified for State 2 testing, then restored to empty Supabase vars)"],
+  "success_rate": {"backend": "n/a (skipped per request)", "frontend": "100%"},
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "OAuth navigation flow is confirmed working. Real Supabase creds cannot be tested here (fake domain gives ERR_NAME_NOT_RESOLVED which is actually the proof of navigation). If user reports issues after providing real Supabase creds, focus on Site URL / Redirect URLs allowlist in Supabase dashboard."
+}

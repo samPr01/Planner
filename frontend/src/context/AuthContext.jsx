@@ -34,20 +34,32 @@ export function AuthProvider({ children }) {
 
     const signInWithProvider = useCallback(async (provider) => {
         if (!supabase) throw new Error("Cloud sync disabled");
-        // Explicit redirectTo — must exactly match an entry in Supabase Auth
-        // "Redirect URLs" allowlist (wildcards like https://your-app.netlify.app/**
-        // are fine). We include an explicit callback path so PKCE lands cleanly.
-        const redirectTo = `${window.location.origin}${window.location.pathname.replace(/\/$/, "")}`;
-        return supabase.auth.signInWithOAuth({
+        // ALWAYS redirect to root — must match Supabase Redirect URLs allowlist.
+        // Using a sub-path here can cause the SDK to fail to generate a URL,
+        // and Chrome/Safari can silently block window.location.assign called
+        // from inside an awaited promise once user activation has expired.
+        const redirectTo = window.location.origin;
+        // Take control of the redirect ourselves — no reliance on the SDK's
+        // internal window.location.assign timing.
+        const { data, error } = await supabase.auth.signInWithOAuth({
             provider,
             options: {
                 redirectTo,
-                queryParams: {
-                    access_type: "offline",
-                    prompt: "consent",
-                },
+                skipBrowserRedirect: true,
+                queryParams: { prompt: "select_account" },
             },
         });
+        // eslint-disable-next-line no-console
+        console.info("[Ledger] signInWithOAuth result:", { provider, hasUrl: !!data?.url, url: data?.url, error });
+        if (error) return { data, error };
+        if (!data?.url) {
+            const e = new Error("Supabase did not return an OAuth URL. Check Site URL and Redirect URLs configuration in Supabase Auth settings.");
+            console.error("[Ledger]", e.message);
+            return { data, error: e };
+        }
+        // Explicit synchronous navigation — bypasses user-gesture timing issues.
+        window.location.href = data.url;
+        return { data, error: null };
     }, []);
 
     const signOut = useCallback(async () => {

@@ -19,12 +19,18 @@ export default function AuthDialog({ open, onOpenChange }) {
     const oauth = async (provider) => {
         setBusy(true);
         try {
-            const { error } = await signInWithProvider(provider);
+            const { data, error } = await signInWithProvider(provider);
             if (error) {
                 console.error("[Ledger] OAuth error:", error);
                 toast.error(error.message || "Sign-in failed. See console for details.");
+                return;
             }
-            // Success path is a full-page redirect — nothing more to do here.
+            if (!data?.url) {
+                toast.error("Sign-in did not return a redirect URL. Verify Supabase Site URL and Redirect URLs allowlist.");
+                return;
+            }
+            // Success — browser is being navigated by signInWithProvider.
+            // If you're still here after this line, the navigation was blocked.
         } catch (e) {
             console.error("[Ledger] OAuth threw:", e);
             toast.error(e.message || "Sign-in failed");
