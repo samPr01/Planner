@@ -1,7 +1,10 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider } from "@/context/AuthContext";
 import { BudgetProvider, useBudget } from "@/context/BudgetContext";
+import { SyncProvider } from "@/context/SyncContext";
+import FirstLoginDialog from "@/components/FirstLoginDialog";
 import Layout from "@/components/Layout";
 import Dashboard from "@/pages/Dashboard";
 import Planned from "@/pages/Planned";
@@ -16,13 +19,10 @@ import { toast } from "sonner";
 
 function ReminderRunner() {
     const s = useBudget();
-
     useEffect(() => {
-        // On mount check reminders due today and not yet notified this session
         const key = `notified:${todayISO()}`;
         const already = new Set(JSON.parse(sessionStorage.getItem(key) || "[]"));
         const today = todayISO();
-
         s.plannedItems.forEach((p) => {
             if (p.status === "paid") return;
             if (p.reminderDate !== today) return;
@@ -35,27 +35,31 @@ function ReminderRunner() {
         });
         sessionStorage.setItem(key, JSON.stringify(Array.from(already)));
     }, [s.plannedItems, s.settings.notificationsEnabled]);
-
     return null;
 }
 
 export default function App() {
     return (
-        <BudgetProvider>
-            <BrowserRouter>
-                <ReminderRunner />
-                <Routes>
-                    <Route path="/" element={<Layout />}>
-                        <Route index element={<Dashboard />} />
-                        <Route path="planned" element={<Planned />} />
-                        <Route path="calendar" element={<CalendarView />} />
-                        <Route path="history" element={<History />} />
-                        <Route path="reports" element={<Reports />} />
-                        <Route path="settings" element={<Settings />} />
-                    </Route>
-                </Routes>
-            </BrowserRouter>
-            <Toaster position="top-right" theme="system" richColors closeButton />
-        </BudgetProvider>
+        <AuthProvider>
+            <BudgetProvider>
+                <SyncProvider>
+                    <BrowserRouter>
+                        <ReminderRunner />
+                        <FirstLoginDialog />
+                        <Routes>
+                            <Route path="/" element={<Layout />}>
+                                <Route index element={<Dashboard />} />
+                                <Route path="planned" element={<Planned />} />
+                                <Route path="calendar" element={<CalendarView />} />
+                                <Route path="history" element={<History />} />
+                                <Route path="reports" element={<Reports />} />
+                                <Route path="settings" element={<Settings />} />
+                            </Route>
+                        </Routes>
+                    </BrowserRouter>
+                    <Toaster position="top-right" theme="system" richColors closeButton />
+                </SyncProvider>
+            </BudgetProvider>
+        </AuthProvider>
     );
 }

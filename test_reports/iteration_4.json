@@ -1,0 +1,35 @@
+{
+  "summary": "Frontend regression + Supabase refactor testing (cloud disabled mode). All 15 test cases pass. App loads cleanly with 0 console errors, sync indicator shows 'Local only' in sidebar (mobile bar also uses SyncIndicator via Layout), Settings Cloud Sync panel shows the exact disabled message, no Sign In button, AuthDialog/FirstLoginDialog not rendered, budget CRUD persists, IndexedDB v20 (>=2) with new fields (updatedAt/createdAt/syncStatus/user_id) present on all sample records, zero supabase network calls, theme toggle persists.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Dexie DB version is 20 (way higher than the stated v2 in problem statement). Not a bug — likely accumulated upgrades — but PRD mentions 'schema v2'. Consider consolidating or documenting versioning."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped)", "frontend": "100%"},
+  "test_credentials": "N/A (cloud disabled)",
+  "seed_data_creation": "Set monthly budget to 37000 for July 2026 via UI",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Cloud sync disabled path fully verified. If Supabase env vars are ever populated, retest AuthDialog + FirstLoginDialog + fullSync flow. IDB DB name: ledger-budget-planner, current version 20. Sample category/budget records include the new sync metadata fields (updatedAt, createdAt, syncStatus, user_id=null when signed out).",
+  "verification_details": {
+    "console_errors": 0,
+    "supabase_network_calls": 0,
+    "sync_indicator_text": "Local only",
+    "cloud_panel_message_present": true,
+    "auth_dialog_visible": false,
+    "first_login_dialog_visible": false,
+    "budget_persist_after_reload": "₹37,000",
+    "idb_version": 20,
+    "idb_stores": ["budgets","categories","expenses","monthlySnapshots","reminders","savingsFunds","settings"],
+    "new_fields_on_records": ["updatedAt","createdAt","syncStatus","user_id"],
+    "theme_toggle": "light -> dark persisted in localStorage",
+    "nav_routes_found": ["/","/planned","/calendar","/history","/reports","/settings"]
+  }
+}

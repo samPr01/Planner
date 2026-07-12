@@ -3,62 +3,93 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db, initDatabase, uid, exportDatabase, importDatabase, resetDatabase } from "@/lib/db";
 import { currentMonthKey, todayISO } from "@/lib/dates";
 import { DEFAULT_CATEGORIES } from "@/lib/defaults";
+import { useAuth } from "@/context/AuthContext";
 
 const BudgetContext = createContext(null);
 
-// Reactive live queries (auto re-render on DB writes)
-function useLive(fn, deps = [], defaultVal) {
-    return useLiveQuery(fn, deps, defaultVal);
-}
+const nowISO = () => new Date().toISOString();
 
 export function BudgetProvider({ children }) {
-    // Ensure DB is initialized before mounting (fire-and-forget; live queries handle first paint)
+    const { user } = useAuth();
+    const userId = user?.id || null;
+
+    // Stamp added to every write so the sync engine can pick it up
+    const stamp = useCallback(
+        (extra = {}) => ({
+            updatedAt: nowISO(),
+            syncStatus: userId ? "pending" : "local",
+            user_id: userId,
+            ...extra,
+        }),
+        [userId]
+    );
+
     useEffect(() => {
         initDatabase().catch((e) => console.error("initDatabase failed", e));
     }, []);
 
-    const settings = useLive(() => db.settings.get("app"), [], null);
-    const categories = useLive(() => db.categories.toArray(), [], DEFAULT_CATEGORIES);
-    const plannedItems = useLive(() => db.reminders.toArray(), [], []);
-    const transactions = useLive(() => db.expenses.orderBy("date").reverse().toArray(), [], []);
-    const budgetsList = useLive(() => db.budgets.toArray(), [], []);
+    const settings = useLiveQuery(() => db.settings.get("app"), [], null);
+    const categoriesRaw = useLiveQuery(() => db.categories.toArray(), [], DEFAULT_CATEGORIES);
+    const plannedItemsRaw = useLiveQuery(() => db.reminders.toArray(), [], []);
+    const transactionsRaw = useLiveQuery(() => db.expenses.orderBy("date").reverse().toArray(), [], []);
+    const budgetsList = useLiveQuery(() => db.budgets.toArray(), [], []);
+
+    // Filter out tombstones (soft-deleted rows kept for sync)
+    const categories = useMemo(() => (categoriesRaw || []).filter((c) => !c.deletedAt), [categoriesRaw]);
+    const plannedItems = useMemo(() => (plannedItemsRaw || []).filter((p) => !p.deletedAt), [plannedItemsRaw]);
+    const transactions = useMemo(() => (transactionsRaw || []).filter((t) => !t.deletedAt), [transactionsRaw]);
 
     const currentMonth = settings?.currentMonth || currentMonthKey();
-
     const monthlyBudgets = useMemo(() => {
         const map = {};
         (budgetsList || []).forEach((b) => (map[b.monthKey] = b.amount));
         if (!(currentMonth in map)) map[currentMonth] = 0;
         return map;
     }, [budgetsList, currentMonth]);
-
     const budget = monthlyBudgets[currentMonth] || 0;
 
-    // ---- Mutations ----
+    // ---- Mutations (stamped for sync) ----
     const setCurrentMonth = useCallback(async (mk) => {
         const existing = await db.budgets.get(mk);
-        if (!existing) await db.budgets.put({ monthKey: mk, amount: 0 });
-        await db.settings.update("app", { currentMonth: mk });
-    }, []);
+        if (!existing) await db.budgets.put({ monthKey: mk, amount: 0, createdAt: nowISO(), ...stamp() });
+        const current = await db.settings.get("app");
+        await db.settings.put({ ...(current || { key: "app" }), currentMonth: mk, ...stamp() });
+    }, [stamp]);
 
     const setBudget = useCallback(async (mk, amount) => {
-        await db.budgets.put({ monthKey: mk, amount: Number(amount) || 0 });
-    }, []);
+        const existing = await db.budgets.get(mk);
+        await db.budgets.put({
+            monthKey: mk,
+            amount: Number(amount) || 0,
+            createdAt: existing?.createdAt || nowISO(),
+            ...stamp(),
+        });
+    }, [stamp]);
 
     const addCategory = useCallback(async (cat) => {
-        await db.categories.add({ ...cat, id: `cat-${uid()}` });
-    }, []);
+        await db.categories.add({ ...cat, id: `cat-${uid()}`, createdAt: nowISO(), ...stamp() });
+    }, [stamp]);
 
     const updateCategory = useCallback(async (id, patch) => {
-        await db.categories.update(id, patch);
-    }, []);
+        await db.categories.update(id, { ...patch, ...stamp() });
+    }, [stamp]);
 
     const deleteCategory = useCallback(async (id) => {
         await db.transaction("rw", db.categories, db.reminders, async () => {
-            await db.categories.delete(id);
-            await db.reminders.where("categoryId").equals(id).delete();
+            if (userId) {
+                // Soft-delete for sync
+                await db.categories.update(id, { deletedAt: nowISO(), ...stamp() });
+                const items = await db.reminders.where("categoryId").equals(id).toArray();
+                for (const item of items) {
+                    await db.reminders.update(item.id, { deletedAt: nowISO(), ...stamp() });
+                }
+            } else {
+                // Local-only: hard delete
+                await db.categories.delete(id);
+                await db.reminders.where("categoryId").equals(id).delete();
+            }
         });
-    }, []);
+    }, [stamp, userId]);
 
     const addPlannedItem = useCallback(async (item) => {
         await db.reminders.add({
@@ -66,16 +97,22 @@ export function BudgetProvider({ children }) {
             status: "unpaid",
             monthKey: currentMonth,
             ...item,
+            createdAt: nowISO(),
+            ...stamp(),
         });
-    }, [currentMonth]);
+    }, [currentMonth, stamp]);
 
     const updatePlannedItem = useCallback(async (id, patch) => {
-        await db.reminders.update(id, patch);
-    }, []);
+        await db.reminders.update(id, { ...patch, ...stamp() });
+    }, [stamp]);
 
     const deletePlannedItem = useCallback(async (id) => {
-        await db.reminders.delete(id);
-    }, []);
+        if (userId) {
+            await db.reminders.update(id, { deletedAt: nowISO(), ...stamp() });
+        } else {
+            await db.reminders.delete(id);
+        }
+    }, [stamp, userId]);
 
     const markPlannedItemPaid = useCallback(async (id, paidDate, remarks) => {
         await db.transaction("rw", db.reminders, db.expenses, db.categories, db.savingsFunds, async () => {
@@ -94,18 +131,22 @@ export function BudgetProvider({ children }) {
                 monthKey: date.slice(0, 7),
                 remarks: remarks || "",
                 type,
+                createdAt: nowISO(),
+                ...stamp(),
             };
             await db.expenses.add(tx);
-            await db.reminders.update(id, { status: "paid", paidDate: date, remarks: tx.remarks });
+            await db.reminders.update(id, { status: "paid", paidDate: date, remarks: tx.remarks, ...stamp() });
             if (type === "saving") {
                 const existing = await db.savingsFunds.get(item.categoryId);
                 await db.savingsFunds.put({
                     id: item.categoryId,
                     balance: (existing?.balance || 0) + tx.amount,
+                    createdAt: existing?.createdAt || nowISO(),
+                    ...stamp(),
                 });
             }
         });
-    }, []);
+    }, [stamp]);
 
     const undoPlannedItemPaid = useCallback(async (id) => {
         await db.transaction("rw", db.reminders, db.expenses, db.savingsFunds, async () => {
@@ -115,14 +156,23 @@ export function BudgetProvider({ children }) {
                 if (t.type === "saving") {
                     const existing = await db.savingsFunds.get(t.categoryId);
                     if (existing) {
-                        await db.savingsFunds.put({ id: t.categoryId, balance: Math.max(0, (existing.balance || 0) - t.amount) });
+                        await db.savingsFunds.put({
+                            id: t.categoryId,
+                            balance: Math.max(0, (existing.balance || 0) - t.amount),
+                            createdAt: existing.createdAt || nowISO(),
+                            ...stamp(),
+                        });
                     }
                 }
-                await db.expenses.delete(t.id);
+                if (userId) {
+                    await db.expenses.update(t.id, { deletedAt: nowISO(), ...stamp() });
+                } else {
+                    await db.expenses.delete(t.id);
+                }
             }
-            if (item) await db.reminders.update(id, { status: "unpaid", paidDate: undefined, remarks: "" });
+            if (item) await db.reminders.update(id, { status: "unpaid", paidDate: undefined, remarks: "", ...stamp() });
         });
-    }, []);
+    }, [stamp, userId]);
 
     const addTransaction = useCallback(async (tx) => {
         const date = tx.date || todayISO();
@@ -132,21 +182,25 @@ export function BudgetProvider({ children }) {
             monthKey: date.slice(0, 7),
             type: "expense",
             ...tx,
+            createdAt: nowISO(),
+            ...stamp(),
         });
         if (tx.type === "saving") {
             const existing = await db.savingsFunds.get(tx.categoryId);
             await db.savingsFunds.put({
                 id: tx.categoryId,
                 balance: (existing?.balance || 0) + (Number(tx.amount) || 0),
+                createdAt: existing?.createdAt || nowISO(),
+                ...stamp(),
             });
         }
-    }, []);
+    }, [stamp]);
 
     const updateTransaction = useCallback(async (id, patch) => {
         const clean = { ...patch };
         if (clean.date) clean.monthKey = clean.date.slice(0, 7);
-        await db.expenses.update(id, clean);
-    }, []);
+        await db.expenses.update(id, { ...clean, ...stamp() });
+    }, [stamp]);
 
     const deleteTransaction = useCallback(async (id) => {
         await db.transaction("rw", db.expenses, db.reminders, db.savingsFunds, async () => {
@@ -155,19 +209,29 @@ export function BudgetProvider({ children }) {
             if (tx.type === "saving") {
                 const existing = await db.savingsFunds.get(tx.categoryId);
                 if (existing) {
-                    await db.savingsFunds.put({ id: tx.categoryId, balance: Math.max(0, (existing.balance || 0) - tx.amount) });
+                    await db.savingsFunds.put({
+                        id: tx.categoryId,
+                        balance: Math.max(0, (existing.balance || 0) - tx.amount),
+                        createdAt: existing.createdAt || nowISO(),
+                        ...stamp(),
+                    });
                 }
             }
             if (tx.plannedItemId) {
-                await db.reminders.update(tx.plannedItemId, { status: "unpaid", paidDate: undefined });
+                await db.reminders.update(tx.plannedItemId, { status: "unpaid", paidDate: undefined, ...stamp() });
             }
-            await db.expenses.delete(id);
+            if (userId) {
+                await db.expenses.update(id, { deletedAt: nowISO(), ...stamp() });
+            } else {
+                await db.expenses.delete(id);
+            }
         });
-    }, []);
+    }, [stamp, userId]);
 
     const updateSettings = useCallback(async (patch) => {
-        await db.settings.update("app", patch);
-    }, []);
+        const current = await db.settings.get("app");
+        await db.settings.put({ ...(current || { key: "app" }), ...patch, ...stamp() });
+    }, [stamp]);
 
     const resetAll = useCallback(async () => {
         await resetDatabase();
@@ -176,15 +240,12 @@ export function BudgetProvider({ children }) {
     const value = useMemo(
         () => ({
             currentMonth,
-            categories: categories || [],
-            plannedItems: plannedItems || [],
-            transactions: transactions || [],
+            categories,
+            plannedItems,
+            transactions,
             monthlyBudgets,
             budget,
-            settings: {
-                notificationsEnabled: !!settings?.notificationsEnabled,
-            },
-            // mutations
+            settings: { notificationsEnabled: !!settings?.notificationsEnabled },
             setCurrentMonth,
             setBudget,
             addCategory,
@@ -215,7 +276,6 @@ export function useBudget() {
     return ctx;
 }
 
-// Derived selectors – identical shape to before, so all consumers work unchanged
 export function useMonthMetrics() {
     const s = useBudget();
     const mk = s.currentMonth;
@@ -229,37 +289,14 @@ export function useMonthMetrics() {
     const monthPlanned = s.plannedItems.filter((p) => p.monthKey === mk);
     const catType = (id) => s.categories.find((c) => c.id === id)?.type;
 
-    const plannedFixed = monthPlanned
-        .filter((p) => catType(p.categoryId) === "fixed")
-        .reduce((a, p) => a + (Number(p.amount) || 0), 0);
-    const plannedSavings = monthPlanned
-        .filter((p) => catType(p.categoryId) === "savings")
-        .reduce((a, p) => a + (Number(p.amount) || 0), 0);
-
-    const variableSpent = monthTxs
-        .filter((t) => catType(t.categoryId) === "variable")
-        .reduce((a, t) => a + t.amount, 0);
+    const plannedFixed = monthPlanned.filter((p) => catType(p.categoryId) === "fixed").reduce((a, p) => a + (Number(p.amount) || 0), 0);
+    const plannedSavings = monthPlanned.filter((p) => catType(p.categoryId) === "savings").reduce((a, p) => a + (Number(p.amount) || 0), 0);
+    const variableSpent = monthTxs.filter((t) => catType(t.categoryId) === "variable").reduce((a, t) => a + t.amount, 0);
 
     const flexibleTotal = Math.max(0, budget - plannedFixed - plannedSavings);
     const flexibleRemaining = flexibleTotal - variableSpent;
     const flexibleUsedPct = flexibleTotal > 0 ? Math.min(200, (variableSpent / flexibleTotal) * 100) : 0;
-
     const utilization = budget > 0 ? Math.min(100, ((totalSpent + totalSavingsAllocated) / budget) * 100) : 0;
 
-    return {
-        mk,
-        budget,
-        totalSpent,
-        totalSavingsAllocated,
-        remaining,
-        plannedFixed,
-        plannedSavings,
-        variableSpent,
-        flexibleTotal,
-        flexibleRemaining,
-        flexibleUsedPct,
-        utilization,
-        monthTxs,
-        monthPlanned,
-    };
+    return { mk, budget, totalSpent, totalSavingsAllocated, remaining, plannedFixed, plannedSavings, variableSpent, flexibleTotal, flexibleRemaining, flexibleUsedPct, utilization, monthTxs, monthPlanned };
 }

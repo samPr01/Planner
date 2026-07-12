@@ -1,5 +1,8 @@
 import React, { useState } from "react";
 import { useBudget } from "@/context/BudgetContext";
+import { useAuth } from "@/context/AuthContext";
+import { useSync } from "@/context/SyncContext";
+import AuthDialog from "@/components/AuthDialog";
 import { Panel, Eyebrow } from "@/components/ui-primitives";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -8,11 +11,33 @@ import { Label } from "@/components/ui/label";
 import { monthLabel, currentMonthKey } from "@/lib/dates";
 import { requestNotificationPermission, isNotificationSupported, sendBrowserNotification } from "@/lib/notifications";
 import { toast } from "sonner";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, RefreshCw, LogOut, LogIn } from "lucide-react";
+
+function useDeviceName() {
+    const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
+    const os = /Win/.test(ua) ? "Windows" : /Mac/.test(ua) ? "macOS" : /Android/.test(ua) ? "Android" : /iPhone|iPad|iPod/.test(ua) ? "iOS" : /Linux/.test(ua) ? "Linux" : "Device";
+    const browser = /Firefox/.test(ua) ? "Firefox" : /Edg/.test(ua) ? "Edge" : /Chrome/.test(ua) ? "Chrome" : /Safari/.test(ua) ? "Safari" : "Browser";
+    return `${browser} on ${os}`;
+}
+
+function fmtRelative(iso) {
+    if (!iso) return "Never";
+    const then = new Date(iso).getTime();
+    const now = Date.now();
+    const s = Math.round((now - then) / 1000);
+    if (s < 60) return "Just now";
+    if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+    if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+    return new Date(iso).toLocaleString();
+}
 
 export default function Settings() {
     const s = useBudget();
+    const { user, cloudEnabled, signOut } = useAuth();
+    const { status, lastSyncAt, pendingCount, triggerSync } = useSync();
     const [confirm, setConfirm] = useState(false);
+    const [authOpen, setAuthOpen] = useState(false);
+    const device = useDeviceName();
 
     const permission = typeof Notification !== "undefined" ? Notification.permission : "unsupported";
 
@@ -84,6 +109,50 @@ export default function Settings() {
                 <p className="mt-2 text-xs text-muted-foreground">All dashboards, planning, and reports use this month.</p>
             </Panel>
 
+            <Panel data-testid="cloud-sync-panel">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <Eyebrow>Cloud sync</Eyebrow>
+                        <p className="mt-2 text-sm text-muted-foreground">Optional. Sign in to sync across devices. Your local data always stays put.</p>
+                    </div>
+                    {user && (
+                        <span className="rounded-full border border-border px-2 py-0.5 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">{status}</span>
+                    )}
+                </div>
+
+                {!cloudEnabled && (
+                    <p className="mt-4 rounded-lg border border-dashed border-border p-3 text-xs text-muted-foreground">
+                        Cloud sync is disabled. Configure <span className="font-mono">REACT_APP_SUPABASE_URL</span> and <span className="font-mono">REACT_APP_SUPABASE_ANON_KEY</span> to enable.
+                    </p>
+                )}
+
+                {cloudEnabled && !user && (
+                    <Button data-testid="sign-in-btn" onClick={() => setAuthOpen(true)} className="mt-4 rounded-full">
+                        <LogIn className="mr-2 h-4 w-4" /> Sign in
+                    </Button>
+                )}
+
+                {cloudEnabled && user && (
+                    <div className="mt-4 grid gap-3">
+                        <Row label="Signed in as" value={user.email || user.id} testid="cloud-user" />
+                        <Row label="Device" value={device} testid="cloud-device" />
+                        <Row label="Sync status" value={status} testid="cloud-status" />
+                        <Row label="Last sync" value={fmtRelative(lastSyncAt)} testid="cloud-last-sync" />
+                        <Row label="Pending changes" value={pendingCount} testid="cloud-pending" />
+                        <div className="mt-2 flex flex-wrap gap-2">
+                            <Button data-testid="manual-sync-btn" onClick={() => { triggerSync(); toast.success("Sync started"); }} variant="outline" className="rounded-full">
+                                <RefreshCw className="mr-2 h-4 w-4" /> Sync now
+                            </Button>
+                            <Button data-testid="sign-out-btn" onClick={async () => { await signOut(); toast.success("Signed out"); }} variant="ghost" className="rounded-full">
+                                <LogOut className="mr-2 h-4 w-4" /> Sign out
+                            </Button>
+                        </div>
+                    </div>
+                )}
+            </Panel>
+
+            <AuthDialog open={authOpen} onOpenChange={setAuthOpen} />
+
             <Panel>
                 <div className="flex items-center justify-between">
                     <div>
@@ -124,9 +193,18 @@ export default function Settings() {
             <Panel>
                 <Eyebrow>About</Eyebrow>
                 <p className="mt-2 text-sm text-muted-foreground">
-                    Ledger — a distraction-free personal budget planner. No accounts. No banks. All data private, stored locally in your browser.
+                    Ledger — a distraction-free personal budget planner. Your data lives on your device first; the cloud is optional.
                 </p>
             </Panel>
+        </div>
+    );
+}
+
+function Row({ label, value, testid }) {
+    return (
+        <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
+            <span className="text-xs uppercase tracking-[0.15em] text-muted-foreground">{label}</span>
+            <span data-testid={testid} className="max-w-[60%] truncate text-sm font-medium">{value}</span>
         </div>
     );
 }

@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { LayoutDashboard, ListChecks, CalendarDays, Receipt, PieChart, Settings, Moon, Sun, IndianRupee } from "lucide-react";
 import { useBudget } from "@/context/BudgetContext";
 import { monthLabel } from "@/lib/dates";
+import SyncIndicator from "@/components/SyncIndicator";
 
 const NAV = [
     { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true, testid: "nav-dashboard" },
@@ -71,6 +72,9 @@ export default function Layout() {
                         </nav>
                     </div>
                     <div className="space-y-4">
+                        <div className="flex justify-start">
+                            <SyncIndicator />
+                        </div>
                         <button
                             data-testid="theme-toggle"
                             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -97,13 +101,16 @@ export default function Layout() {
                         </div>
                         <span className="font-display text-base font-medium tracking-tight">Ledger</span>
                     </div>
-                    <button
-                        data-testid="theme-toggle-mobile"
-                        onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                        className="rounded-md border border-border p-2 text-muted-foreground"
-                    >
-                        {theme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <SyncIndicator compact />
+                        <button
+                            data-testid="theme-toggle-mobile"
+                            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                            className="rounded-md border border-border p-2 text-muted-foreground"
+                        >
+                            {theme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Main content */}
