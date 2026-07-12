@@ -103,10 +103,23 @@ export default function Layout() {
                     </div>
                     <div className="flex items-center gap-2">
                         <SyncIndicator compact />
+                        <NavLink
+                            to="/settings"
+                            data-testid="nav-settings-mobile"
+                            className={({ isActive }) =>
+                                `rounded-md border border-border p-2 transition-colors ${
+                                    isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                                }`
+                            }
+                            aria-label="Settings"
+                        >
+                            <Settings className="h-4 w-4" strokeWidth={1.5} />
+                        </NavLink>
                         <button
                             data-testid="theme-toggle-mobile"
                             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                             className="rounded-md border border-border p-2 text-muted-foreground"
+                            aria-label="Toggle theme"
                         >
                             {theme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
                         </button>
