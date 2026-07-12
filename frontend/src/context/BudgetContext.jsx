@@ -40,6 +40,7 @@ export function BudgetProvider({ children }) {
     const transactions = useMemo(() => (transactionsRaw || []).filter((t) => !t.deletedAt), [transactionsRaw]);
 
     const currentMonth = settings?.currentMonth || currentMonthKey();
+    const userName = settings?.userName || "Guest";
     const monthlyBudgets = useMemo(() => {
         const map = {};
         (budgetsList || []).forEach((b) => (map[b.monthKey] = b.amount));
@@ -233,6 +234,13 @@ export function BudgetProvider({ children }) {
         await db.settings.put({ ...(current || { key: "app" }), ...patch, ...stamp() });
     }, [stamp]);
 
+    const setUserName = useCallback(async (name) => {
+        const clean = (name || "").trim() || "Guest";
+        const current = await db.settings.get("app");
+        await db.settings.put({ ...(current || { key: "app" }), userName: clean, ...stamp() });
+    }, [stamp]);
+
+
     const resetAll = useCallback(async () => {
         await resetDatabase();
     }, []);
@@ -240,6 +248,7 @@ export function BudgetProvider({ children }) {
     const value = useMemo(
         () => ({
             currentMonth,
+            userName,
             categories,
             plannedItems,
             transactions,
@@ -248,6 +257,7 @@ export function BudgetProvider({ children }) {
             settings: { notificationsEnabled: !!settings?.notificationsEnabled },
             setCurrentMonth,
             setBudget,
+            setUserName,
             addCategory,
             updateCategory,
             deleteCategory,
@@ -264,7 +274,7 @@ export function BudgetProvider({ children }) {
             exportDatabase,
             importDatabase,
         }),
-        [currentMonth, categories, plannedItems, transactions, monthlyBudgets, budget, settings, setCurrentMonth, setBudget, addCategory, updateCategory, deleteCategory, addPlannedItem, updatePlannedItem, deletePlannedItem, markPlannedItemPaid, undoPlannedItemPaid, addTransaction, updateTransaction, deleteTransaction, updateSettings, resetAll]
+        [currentMonth, userName, categories, plannedItems, transactions, monthlyBudgets, budget, settings, setCurrentMonth, setBudget, setUserName, addCategory, updateCategory, deleteCategory, addPlannedItem, updatePlannedItem, deletePlannedItem, markPlannedItemPaid, undoPlannedItemPaid, addTransaction, updateTransaction, deleteTransaction, updateSettings, resetAll]
     );
 
     return <BudgetContext.Provider value={value}>{children}</BudgetContext.Provider>;

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { LayoutDashboard, ListChecks, CalendarDays, Receipt, PieChart, Settings, Moon, Sun, IndianRupee } from "lucide-react";
+import { LayoutDashboard, ListChecks, CalendarDays, Receipt, PieChart, Settings, Moon, Sun } from "lucide-react";
 import { useBudget } from "@/context/BudgetContext";
 import { monthLabel } from "@/lib/dates";
 import SyncIndicator from "@/components/SyncIndicator";
@@ -30,7 +30,7 @@ function useTheme() {
 }
 
 export default function Layout() {
-    const { currentMonth } = useBudget();
+    const { currentMonth, userName } = useBudget();
     const [theme, setTheme] = useTheme();
     const location = useLocation();
 
@@ -40,13 +40,12 @@ export default function Layout() {
                 {/* Sidebar */}
                 <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col justify-between border-r border-border px-6 py-8 md:flex">
                     <div>
-                        <div className="mb-14 flex items-center gap-2">
-                            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-foreground text-background">
-                                <IndianRupee className="h-4 w-4" strokeWidth={2} />
-                            </div>
-                            <div>
-                                <div className="font-display text-lg font-medium leading-none tracking-tight">Ledger</div>
-                                <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Personal Finance</div>
+                        <div className="mb-14">
+                            <div
+                                data-testid="brand-name-sidebar"
+                                className="font-display text-2xl font-medium tracking-tight"
+                            >
+                                Hi, {userName}
                             </div>
                         </div>
                         <div className="mb-4 label-eyebrow">Navigate</div>
@@ -95,11 +94,11 @@ export default function Layout() {
 
                 {/* Mobile top bar */}
                 <div className="md:hidden fixed top-0 inset-x-0 z-30 flex items-center justify-between border-b border-border bg-background px-4 py-3">
-                    <div className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-foreground text-background">
-                            <IndianRupee className="h-3.5 w-3.5" />
-                        </div>
-                        <span className="font-display text-base font-medium tracking-tight">Ledger</span>
+                    <div
+                        data-testid="brand-name-mobile"
+                        className="font-display text-base font-medium tracking-tight"
+                    >
+                        Hi, {userName}
                     </div>
                     <div className="flex items-center gap-2">
                         <SyncIndicator compact />

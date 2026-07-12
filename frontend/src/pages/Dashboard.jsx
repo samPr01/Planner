@@ -3,7 +3,7 @@ import { useBudget, useMonthMetrics } from "@/context/BudgetContext";
 import { Panel, Eyebrow, ProgressBar, Ring } from "@/components/ui-primitives";
 import { fmtINR, fmtINRShort } from "@/lib/currency";
 import { daysInMonth, daysLeftInMonth, monthLabel, todayISO, formatShortDate } from "@/lib/dates";
-import { ArrowUpRight, Bell, Check, Clock, TrendingDown, TrendingUp, Wallet, PiggyBank, CalendarDays } from "lucide-react";
+import { ArrowUpRight, Bell, Check, Clock, TrendingDown, TrendingUp, Wallet, PiggyBank, CalendarDays, Pencil, X } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, LineChart, Line, YAxis } from "recharts";
 import { Link } from "react-router-dom";
 import { CATEGORY_ICONS } from "@/lib/defaults";
@@ -88,8 +88,8 @@ export default function Dashboard() {
             <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                 <div>
                     <div className="label-eyebrow">{monthLabel(m.mk)}</div>
-                    <h1 className="mt-2 font-display text-4xl font-medium tracking-tight sm:text-5xl">
-                        Good {getGreeting()}. Here&apos;s your money.
+                    <h1 className="mt-2 flex items-center gap-3 font-display text-4xl font-medium tracking-tight sm:text-5xl">
+                        Hi, <GreetingName />
                     </h1>
                 </div>
                 <Link
@@ -312,6 +312,75 @@ function getGreeting() {
     if (h < 18) return "afternoon";
     return "evening";
 }
+
+function GreetingName() {
+    const { userName, setUserName } = useBudget();
+    const [editing, setEditing] = React.useState(false);
+    const [val, setVal] = React.useState(userName);
+    const inputRef = React.useRef(null);
+
+    React.useEffect(() => { setVal(userName); }, [userName]);
+    React.useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
+
+    const save = async () => {
+        await setUserName(val);
+        setEditing(false);
+    };
+    const cancel = () => {
+        setVal(userName);
+        setEditing(false);
+    };
+    const onKey = (e) => {
+        if (e.key === "Enter") { e.preventDefault(); save(); }
+        if (e.key === "Escape") { e.preventDefault(); cancel(); }
+    };
+
+    if (editing) {
+        return (
+            <span className="inline-flex items-baseline gap-2">
+                <input
+                    ref={inputRef}
+                    data-testid="greeting-name-input"
+                    value={val}
+                    onChange={(e) => setVal(e.target.value)}
+                    onKeyDown={onKey}
+                    maxLength={40}
+                    className="border-b border-foreground/40 bg-transparent font-display text-4xl font-medium tracking-tight outline-none sm:text-5xl"
+                    style={{ width: `${Math.max(4, val.length + 1)}ch` }}
+                />
+                <button
+                    data-testid="greeting-save-btn"
+                    onClick={save}
+                    className="rounded-full border border-border p-1.5 text-muted-foreground hover:text-foreground"
+                    aria-label="Save name"
+                >
+                    <Check className="h-4 w-4" strokeWidth={1.5} />
+                </button>
+                <button
+                    onClick={cancel}
+                    className="rounded-full border border-border p-1.5 text-muted-foreground hover:text-foreground"
+                    aria-label="Cancel"
+                >
+                    <X className="h-4 w-4" strokeWidth={1.5} />
+                </button>
+            </span>
+        );
+    }
+    return (
+        <span className="inline-flex items-baseline gap-2">
+            <span data-testid="greeting-name">{userName}</span>
+            <button
+                data-testid="greeting-edit-btn"
+                onClick={() => setEditing(true)}
+                className="rounded-full border border-border p-1.5 text-muted-foreground transition-colors hover:text-foreground"
+                aria-label="Edit name"
+            >
+                <Pencil className="h-3.5 w-3.5" strokeWidth={1.5} />
+            </button>
+        </span>
+    );
+}
+
 
 function MiniStat({ label, value, icon: Icon, isPlain }) {
     return (
