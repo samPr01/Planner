@@ -20,7 +20,14 @@ export default function AuthDialog({ open, onOpenChange }) {
         setBusy(true);
         try {
             const { error } = await signInWithProvider(provider);
-            if (error) toast.error(error.message);
+            if (error) {
+                console.error("[Ledger] OAuth error:", error);
+                toast.error(error.message || "Sign-in failed. See console for details.");
+            }
+            // Success path is a full-page redirect — nothing more to do here.
+        } catch (e) {
+            console.error("[Ledger] OAuth threw:", e);
+            toast.error(e.message || "Sign-in failed");
         } finally {
             setBusy(false);
         }

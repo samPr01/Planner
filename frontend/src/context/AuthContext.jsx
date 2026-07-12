@@ -34,7 +34,20 @@ export function AuthProvider({ children }) {
 
     const signInWithProvider = useCallback(async (provider) => {
         if (!supabase) throw new Error("Cloud sync disabled");
-        return supabase.auth.signInWithOAuth({ provider, options: { redirectTo: window.location.origin } });
+        // Explicit redirectTo — must exactly match an entry in Supabase Auth
+        // "Redirect URLs" allowlist (wildcards like https://your-app.netlify.app/**
+        // are fine). We include an explicit callback path so PKCE lands cleanly.
+        const redirectTo = `${window.location.origin}${window.location.pathname.replace(/\/$/, "")}`;
+        return supabase.auth.signInWithOAuth({
+            provider,
+            options: {
+                redirectTo,
+                queryParams: {
+                    access_type: "offline",
+                    prompt: "consent",
+                },
+            },
+        });
     }, []);
 
     const signOut = useCallback(async () => {
