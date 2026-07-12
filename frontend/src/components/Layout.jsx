@@ -98,7 +98,7 @@ export default function Layout() {
                         data-testid="brand-name-mobile"
                         className="font-display text-base font-medium tracking-tight"
                     >
-                        Hi, {userName}
+                        {/* Hi, {userName} */}
                     </div>
                     <div className="flex items-center gap-2">
                         <SyncIndicator compact />
