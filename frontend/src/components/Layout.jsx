@@ -45,7 +45,8 @@ export default function Layout() {
                                 data-testid="brand-name-sidebar"
                                 className="font-display text-2xl font-medium tracking-tight"
                             >
-                                Hi, {userName}
+                                  Yo, money
+                                be sizzlin...!
                             </div>
                         </div>
                         <div className="mb-4 label-eyebrow">Navigate</div>
@@ -98,7 +99,8 @@ export default function Layout() {
                         data-testid="brand-name-mobile"
                         className="font-display text-base font-medium tracking-tight"
                     >
-                        {/* Hi, {userName} */}
+                         Yo, money
+                        be sizzlin...!
                     </div>
                     <div className="flex items-center gap-2">
                         <SyncIndicator compact />
